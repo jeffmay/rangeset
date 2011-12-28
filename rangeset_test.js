@@ -249,6 +249,8 @@ function testRangeSetPack()
         [[new IntRangeSet([1,2],[1,2]), new IntRangeSet([1,2])], true],
         [[new IntRangeSet(null,null,[1,2],[1,2]), new IntRangeSet([1,2])], true],
         [[new IntRangeSet([1,2],null,[1,2]), new IntRangeSet([1,2])], true],
+        [[new IntRangeSet([1,2],[3,4]), new IntRangeSet([1,2],[3,4])], true],
+        [[new IntRangeSet([1,2],[3,4],[5,6]), new IntRangeSet([1,2],[3,4],[5,6])], true],
         [[new IntRangeSet([1,2],[2,3]), new IntRangeSet([1,3])], true],
         [[new IntRangeSet([1,2],[2,3], null), new IntRangeSet([1,3])], true],
         [[new IntRangeSet([1,2],[2,3],[3,4]), new IntRangeSet([1,4])], true],
@@ -304,14 +306,22 @@ function testRangeSetUnionNulls()
     assertTestsMatchSetRelationship(tests, 'union', 'equals');
 }
 
+// TODO: Finish writing the tests for this function
 function testRangeSetDifferenceKnown()
 {
     console.log("Testing RangeSet Difference Known Values...");
     var tests = [
+        // Test the start of the function
+        [[new IntRangeSet([5,9]), new IntRangeSet([0,1],[2,3],[4,5])], new IntRangeSet([5,9])],
+        [[new IntRangeSet([5,9]), new IntRangeSet([0,1])], new IntRangeSet([5,9])],
+        [[new IntRangeSet([5,9]), new IntRangeSet([4,6])], new IntRangeSet([6,9])],
+        [[new IntRangeSet([5,9]), new IntRangeSet([6,7])], new IntRangeSet([5,6],[7,9])],
         [[new IntRangeSet([1,3]), new IntRangeSet([1,2])], new IntRangeSet([2,3])],
         [[new IntRangeSet([1,3]), new IntRangeSet([2,3])], new IntRangeSet([1,2])],
         [[new IntRangeSet([1,3],[4,6]), new IntRangeSet([2,3],[4,5])], new IntRangeSet([1,2],[5,6])],
         [[new IntRangeSet([1,6]), new IntRangeSet([1,6])], new IntRangeSet()],
+        [[new IntRangeSet([1,2],[4,5]), new IntRangeSet([3,6])], new IntRangeSet([1,2])],
+        [[new IntRangeSet([1,3],[5,6]), new IntRangeSet([2,7])], new IntRangeSet([1,2])],
         [[new IntRangeSet([1,6]), new IntRangeSet([2,3],[4,5])], new IntRangeSet([1,2],[3,4],[5,6])],
         [[new IntRangeSet([2,3],[4,5]), new IntRangeSet([1,6])], new IntRangeSet()],
         [[new IntRangeSet([2,3],[4,5]), new IntRangeSet([2,3])], new IntRangeSet([4,5])]
@@ -489,29 +499,16 @@ function assertTestsMatchRelationship(tests, action, prop) {
 function assertTestsMatchSetRelationship(tests, action, prop) {
     for(var n=0; n<tests.length; n++) {
         var actual;
+        var a = tests[n][0][0];
+        var b = tests[n][0][1];
         if(typeof action == 'string') {
-            actual = tests[n][0][0][action](tests[n][0][1]);
+            actual = a[action](b);
         }
         else {
-            actual = action.apply(this, tests[n][0]);
+            actual = action.call(a, b);
         }
         var expected = tests[n][1];
-        var passed = false;
-        if(actual.length === expected.length) {
-            for(var i in expected) {
-                var exists = false;
-                for(var j in actual) {
-                    if(actual[prop](expected)) {
-                        exists = true;
-                    }
-                }
-                if(!exists) {
-                    break;
-                }
-            }
-            passed = true;
-        }
-        if(passed) {
+        if(equalState(actual, expected)) {
             console.log("Test " + n + ": PASS");
         }
         else {

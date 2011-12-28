@@ -148,7 +148,7 @@ IntRangeSet.prototype = {
     pack: function() {
         // Sort from lowest to highest
         this.ranges.sort(IntRange.Comparator);
-        // Merge by joining continguous ranges from lowest to highest
+        // Merge by joining contiguous ranges from lowest to highest
         var prev = new IntRange();
         var newranges = [];
         for(var i=0; i<this.ranges.length; i++) {
@@ -173,15 +173,12 @@ IntRangeSet.prototype = {
                     newranges.push(prev);
                 }
             }
-            if(i == this.ranges.length - 1) {
-                // If we have reached the end add the current non-null contiguous range
-                // Use the current rangeset if it not contiguous 
-                newranges.push(merged.nullrange ? cur : merged);
-            }
-            else {
-                // Set the previous pointer to the current contiguous range
-                prev = merged;
-            }
+            // Set the previous pointer to the current contiguous range
+            prev = merged.nullrange ? cur : merged;
+        }
+        if(!prev.nullrange) {
+            // Add the last non-null contiguous range
+            newranges.push(prev);
         }
         this.ranges = newranges;
         // Mark as complete
@@ -221,77 +218,130 @@ IntRangeSet.prototype = {
         }
         return joined;
     },
+    /**
+     * Compute the asymetric differce with the given rangeset.
+     *
+     * Ex:
+     *      ___  ___  _ ___  _ ___  (a)
+     *         ___ ____ _ ____      (b)
+     *    = ___   _      _     ___  (result)
+     *
+     * NOTE: a.difference(b) != b.difference(a) for all a,b
+     *
+     * @param rangeset Another IntRangeSet to subtract from this rangeset.
+     *
+     * @return A new rangeset representing the rangeset difference of
+     *         this rangeset - the given rangeset.
+     */
     difference: function(rangeset) {
-        throw "NotImplementedError: difference is not implemented.";
-        // TODO: Implement this using the pencil method
-        if(rangeset.ranges.length == 0 || this.ranges.length == 0) return new IntRangeSet();
-        // Sweep from lowest to greatest and subtract out any parts that are inside the given rangeset
+        /* This uses what I would like to call the pen algorithm.
+         *
+         * An easy way to imagine it is to pretend to hold a pen and
+         * examine each of the ranges in the top rangeset, which we
+         * can imagine as a series of line segments.
+         *
+         * ie.       ____  _________  ___    (top rangeset)
+         *      __  ___  ____  ___      ___  (bottom rangeset)
+         *    =        __    __   __  __     (resulting rangeset)
+         *
+         * First, we search for when to place our pen.
+         * If the vertex falls inside a bottom range, we move our pen
+         * to the end of that bottom range.
+         *
+         * ie.       ____  _________  ___    (top rangeset)
+         *      __  ___  ____  ___      ___  (bottom rangeset)
+         *  pen_start >
+         *
+         * Then we drag the pen to either the end of the top range
+         * or the start of the next bottom range.
+         *
+         * ie.       ____  _________  ___    (top rangeset)
+         *      __  ___  ____  ___      ___  (bottom rangeset)
+         *             __< pen_end
+         *
+         * Then we add the marked range to the resulting rangeset
+         * and move to the next top range and do it again.
+         *
+         * When searching for where to place our pen, we must always
+         * examine the bottom range that ends after the start of the
+         * current top range.
+         *
+         * Then we can construct the range
+         * from max(top.start, btm.end) to min(top.end, btm.start)
+         */
+        if( rangeset.ranges.length == 0 || this.ranges.length == 0 ) {
+            return new IntRangeSet();
+        }
         var newranges = [];
-        var ti = 0, ri = 0;
-        var t = this.ranges[ti];
-        var r = rangeset.ranges[ri];
-        var subtract_mode = r.start <= t.start;
-        debugger;
-        do {
-            var range = [];
-            if(subtract_mode) {
-                // t  ---      --         ---         ---
-                // r  --   OR  ---  OR  ---    OR  ---
-
-                // Find the end of the subtracting range in the current rangeset
-                while(t.end < r.end && ti < this.ranges.length) {
-                    // TODO: Break when end reached
-                    t = this.ranges[++ti];
-                }
-                // Get the start point of the current range
-                range[0] = t.start < r.end ? r.end : t.start;
-                // Check the next range to figure out the state
-                r = rangeset.ranges[++ri];
-                if(r.start <= t.end) {
-                    // Cut the end of the current range at the start of the next subtracting range
-                    range[1] = r.start;
+        var top_idx = 0, btm_idx = 0;
+        // We keep track of the bottom ranges separately,
+        // so we need to set it here.
+        var top_range, btm_range = rangeset.ranges[btm_idx];
+        var pen_start, pen_stop;
+        // TODO: Solve rangeset difference algorithm
+        do
+        {
+            // TODO: Rewrite this to handle bottom rangesets
+            //== Step 1: Find pen_start ==
+            // There will always be a pen_start on a top range
+            // unless the top range is surrounded by a bottom range
+            // i.e.   ___   OR  _____
+            //       _____      _____
+            top_range = this.ranges[top_idx++];
+            if( btm_range.surrounds(top_range) ) {
+                continue;
+            }
+            // Skip any bottom ranges that end before the
+            // start of the top range
+            while( btm_range && top_range.start >= btm_range.end )
+            {
+                btm_range = rangeset.ranges[++btm_idx];
+            }
+            if( btm_range ) {
+                if( btm_range.start <= top_range.start ) {
+                    // The bottom 
+                    // Set the pen down at the start of the top range
+                    // or the end of bottom range (if it is greater)
+                    pen_start = Math.max(top_range.start, btm_range.end);
+                    // Find the next bottom range (if there is one)
+                    btm_range = rangeset.ranges[++btm_idx];
                 }
                 else {
-                    // Let the range finish naturally before we look for the next subtracting range
-                    range[1] = t.end;
-                    // Time to switch modes
-                    subtract_mode = false;
-                    t = this.ranges[++ti];
+                    // The bottom range does not affect the pen_start
+                    pen_start = top_range.start;
                 }
-                newranges.push(new IntRange(range));
             }
             else {
-                // t  --       ---        ---         ---
-                // r  ---  OR  ---  OR  ---    OR  ---
-
-                // Find the start of the next subtracting range in the given rangeset
-                // Unless we already have it
-                while(r.end < t.start && rangeset.ranges.length) {
-                    // TODO: Break when end reached
-                    r = rangeset.ranges[++ri];
-                }
-
-                // Get the end point of the subtracting range
-                if(r.end < t.start) {
-                    // t  ---         ---
-                    // r  ---     OR   ---
-                    // Cut the start of the next range to the end end of the subtracting range
-                    range[0] = r.end;
-                }
-                else {
-                    // t  ---      ---       ---
-                    // r  ---  OR   ---  OR     ---
-                    range[0] = t.start;
-                    // Time to switch modes
-                    subtract_mode = false;
-                    r = rangeset.ranges[++ri];
-                }
-                range[1] = t.end;
-                newranges.push(new IntRange(range));
+                // No more bottom ranges, just draw from the start
+                pen_start = top_range.start;
+            }
+            // Step 2: Find pen_end
+            if( btm_range ) {
+                // Mark to the end of the top range
+                // or the start of the bottom range (if it is less)
+                pen_end = Math.min(top_range.end, btm_range.start);
+            }
+            else {
+                // No more bottom ranges, just draw to the end
+                pen_end = top_range.end;
+            }
+            // Step 3: Add the marked range to the results
+            if( pen_start < pen_end ) {
+                // Only add the range if it is valid
+                newranges.push(new IntRange(pen_start, pen_end));
+            }
+            if( !btm_range ) {
+                // If we have run out of ranges to subtract
+                // Add all the remaining ranges to the set
+                Array.prototype.push.apply(
+                        newranges, this.ranges.splice(top_idx + 1));
+                break;
             }
         }
-        while(ti < this.ranges.length);
-        console.log();
+        // Iterate through every range to be subtracted from
+        while ( top_idx < this.ranges.length );
+        // Return a new rangeset to insure immutability
+        return new IntRangeSet(newranges);
     },
     clone: function() {
         return new IntRangeSet(this);

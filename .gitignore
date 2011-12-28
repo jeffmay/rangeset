@@ -1,0 +1,8 @@
+# IDE Files #
+#############
+.project
+tags
+
+# Lock Files #
+##############
+*.swp

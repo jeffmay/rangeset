@@ -4,6 +4,33 @@
  * Time: 2:23:12 PM
  */
 
+test("range constructor", function() {
+    var tests = [
+        [[], false],
+        [[undefined], false],
+        [[undefined, undefined], false],
+        [[undefined, undefined, undefined], true],
+        [[null], false],
+        [[null,null], false],
+        [[null,null,null], true],
+        [[new IntRange(1,2)], false],
+        [[[new IntRange(1,2)]], true],
+        [[new IntRange(1,2), new IntRange(3,4)], true],
+        [[[new IntRange(1,2), new IntRange(3,4)]], true],
+        [[1,2], false],
+        [[1,2,3], true],
+        [[[1,2]], false],
+        [[[1,2,3]], true],
+        [[[1,2],[3,4]], true]
+    ];
+    for(var i=0; i<tests.length; i++) {
+        var test = tests[i];
+        ok(function() {
+            construct(IntRange, test[0]);
+        }, test[1]);
+    }
+});
+
 function testRangeConstructor()
 {
     console.log("Testing Range Constructor...");

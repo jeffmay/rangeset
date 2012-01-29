@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<project name="rangesetjs" default="dist" basedir=".">
+
+    <description>Build file for the rangesetjs library.</description>
+
+    <target name="-load.properties"
+        description="Set properties for this build">
+        <!--JS compiler / compressor location-->
+        <property name="compiler.jar" value="${basedir}/compiler.jar"/>
+        <!--Source JS dir-->
+        <property name="src.js.dir" value="${basedir}/src"/>
+        <!--Output dir-->
+        <property name="build.dir" value="dist"/>
+        <property name="build.js.dir" value="${build.dir}"/>
+        <!--Build version information -->
+        <property name="build.major" value="0"/>
+        <property name="build.minor" value="5"/>
+    </target>
+
+
+    <!--Create build directories-->
+    <target name="-init" depends="-load.properties"
+        description="Create build directory structure">
+        
+        <!--Delete previous build files-->
+        <delete dir="${build.dir}"/>
+        
+        <!--Recreate the build directories-->
+        <mkdir dir="${build.dir}"/>
+    </target>
+
+
+    <!--Concatenate JS files-->
+    <target name="-js.concat"
+        description="Concatenates specified JavaScript files">
+        <concat destfile="${build.js.dir}/rangeset.js" fixlastline="true">
+            <filelist 
+                dir="${src.js.dir}"
+                files="
+	                global.js,
+	                rangeset.js,
+	                range.js,
+	                daterangeset.js"/>
+        </concat>
+        <echo>Finished</echo>
+    </target>
+
+
+    <!--Minify JS files-->
+    <target name="-js.minify" depends="-js.concat" 
+        description="Minifies JavaScript files">
+        <apply executable="java" parallel="false" dest="${build.dir}">
+            <filelist 
+                dir="${build.js.dir}" 
+                files="rangeset.js"/>
+            <arg line="-jar"/>
+            <arg path="${compiler.jar}"/>
+            <arg value="--js" />
+            <srcfile />
+            <arg value="--js_output_file" />
+            <targetfile />
+            <mapper type="glob" from="*.js" to="*-min.js"/>
+        </apply>
+        <echo>Finished</echo>
+    </target>
+
+
+    <!--Build-->
+    <target name="dist" 
+        description="Builds project files for production use"
+        depends="
+            -load.properties, 
+            -init, 
+            -js.concat,
+            -js.minify">
+    </target>
+</project>

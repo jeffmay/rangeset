@@ -1,165 +1,173 @@
 
 /**
- * Valid ways to define an IntRange:
- *
- *  IntRange()
- *  IntRange(null)
- *  IntRange(1,2)
- *  IntRange([1,2])
+ * A range implementation that operates on integers.
+ * 
+ * This currently does not support infinite bounds.
  *
  */
 function IntRange(start, end)
 {
-    IntRange.prototype.__init__.apply(this, arguments);
+    IntRanges.newRange(this, arguments);
 }
-// Prototype definition
-IntRange.prototype = {
-    __init__: function() {
+IntRange.prototype.toString = function()
+{
+    return 'Range( ' + this.start + '-' + this.end + ' )';
+};
+
+// Controller definition
+var IntRanges =
+{
+    newRange: function(range, args) {
         var start,end;
-        if(arguments.length <= 1) {
-            if(arguments.length == 0 || arguments[0] == null) {
+        if(args.length <= 1) {
+            if(args.length == 0 || args[0] == null) {
                 // Create a null range
                 start = null;
             }
-            else if(arguments[0] instanceof IntRange) {
-                // Copy the int range values into the arguments
-                start = arguments[0].start;
-                end = arguments[0].end;
+            else if(args[0] instanceof IntRange) {
+                // Copy the int range values into the args
+                start = args[0].start;
+                end = args[0].end;
             }
-            else if(arguments[0].length == 2 && typeof arguments[0][0] == 'number' && typeof arguments[0][1] == 'number') {
-                // Unpack the array arguments
-                start = arguments[0][0];
-                end = arguments[0][1];
+            else if(args[0].length == 2 && typeof args[0][0] == 'number' && typeof args[0][1] == 'number') {
+                // Unpack the array args
+                start = args[0][0];
+                end = args[0][1];
             }
-            else if(typeof arguments[0] == 'number') {
+            else if(typeof args[0] == 'number') {
                 throw "Error: Missing end argument";
             }
             else {
-                throw "TypeError: Invalid argument type. Must be two number arguments, an IntRange, an array of 2 numbers, or null.";
+                throw "Invalid Arguments: Type Error: Must be two number arguments, an IntRange, an array of 2 numbers, or null.";
             }
         }
-        else if(arguments.length == 2) {
-            start = arguments[0];
-            end = arguments[1];
+        else if(args.length == 2) {
+            start = args[0];
+            end = args[1];
         }
         else {
             throw "Error: Too many arguments";
         }
 
         if(typeof start == 'number' && typeof end == 'number') {
-            this.start = Math.floor(start);
-            this.end = Math.floor(end);
-            this.nullrange = false;
-            if(this.start > this.end) {
-                throw "Invalid IntRange( " + start + " : " + end + " ) [start > end]";
+            range.start = Math.floor(start);
+            range.end = Math.floor(end);
+            if(range.start > range.end) {
+                throw "Invalid Arguments: Value Error [start > end]: in " + this.toString(range);
             }
         }
-        else if(start == null && end == null) {
-            this.start = null;
-            this.end = null;
-            this.nullrange = true;
+        else if(start == null) {
+            range.start = null;
+            range.end = null;
         }
         else {
-            throw "TypeError: Invalid arguments for " + this.toString.call({
-                start: start,
-                end: end
-            });
+            range.start = start;
+            range.end = end;
+            throw "Invalid Arguments: Type Error " + this.toString(range);
         }
     },
-    equals: function(range) {
-        if(!range) return false;
-        if(!(range instanceof IntRange)) {
-            range = new IntRange(range);
+    equal: function(left, right) {
+    	if(left === right) return true;
+        if(!left || !right) return false;
+        if(!(left instanceof IntRange)) {
+            left = new IntRange(left);
         }
-        if(this.nullrange || range.nullrange) return this.nullrange && range.nullrange;
-        return this.start == range.start && this.end == range.end;
+        if(!(right instanceof IntRange)) {
+            right = new IntRange(right);
+        }
+        return left.start == right.start && left.end == right.end;
     },
-    compareTo: function(o) {
-        if(this.equals(o)) {
+    compare: function(left, right) {
+        if(this.equal(left, right)) {
             return 0;
         }
-        else if(this.nullrange) {
+        else if(this.isEmpty(left)) {
             return -1;
         }
-        else if(o.nullrange) {
+        else if(this.isEmpty(right)) {
             return 1;
         }
-        else if(this.start != o.start) {
-            return this.start - o.start;
+        else if(left.start != right.start) {
+            return left.start - right.start;
         }
         else {
-            return this.end - o.end;
+            return left.end - right.end;
         }
     },
-    isEmpty: function() {
-        return this.nullrange || this.start == 0 && this.end == 0;
+    isEmpty: function(range) {
+        if(!(range instanceof IntRange)) range = new IntRange(range);
+        return range.start == null || range.end == null || range.start == range.end;
     },
-    contains: function(range) {
-        if(this.nullrange || range.nullrange) return false;
-        return this.start <= range.start && this.end >= range.end;
+    contains: function(left, right) {
+        if(!(left instanceof IntRange)) left = new IntRange(left);
+        if(!(right instanceof IntRange)) right = new IntRange(right);
+        if(this.isEmpty(left) || this.isEmpty(right)) return false;
+        return left.start <= right.start &&
+               left.end   >= right.end;
     },
-    surrounds: function(range) {
-        if(this.nullrange) return false;
-        return this.start < range.start && this.end > range.end;
+    surrounds: function(left, right) {
+        if(!(left instanceof IntRange)) left = new IntRange(left);
+        if(!(right instanceof IntRange)) right = new IntRange(right);
+        if(this.isEmpty(left) || this.isEmpty(right)) return false;
+        return left.start < right.start &&
+               left.end   > right.end;
     },
-    isConnected: function(range) {
-        if(!range || range.nullrange || this.nullrange) return false;
-        return this.end >= range.start && this.start <= range.end;
+    isConnected: function(left, right) {
+        if(!(left instanceof IntRange)) left = new IntRange(left);
+        if(!(right instanceof IntRange)) right = new IntRange(right);
+        if(this.isEmpty(left) || this.isEmpty(right)) return false;
+        return left.end   >= right.start &&
+               left.start <= right.end;
     },
-
-    // Immutable operations
-
-    intersect: function(range) {
-        if(this.nullrange || range.nullrange) return new IntRange();
-        if(this.end < range.start || this.start > range.end) return new IntRange();
-        return new IntRange(Math.max(this.start, range.start), Math.min(this.end, range.end));
+    intersect: function(left, right) {
+        if(!(left instanceof IntRange)) left = new IntRange(left);
+        if(!(right instanceof IntRange)) right = new IntRange(right);
+        if(this.isEmpty(left) || this.isEmpty(right)) return new IntRange();
+        if(left.end < right.start || left.start > right.end) return new IntRange();
+        return new IntRange(Math.max(left.start, right.start),
+                            Math.min(left.end, right.end));
     },
-    merge: function(range) {
-        if(this.isConnected(range)) {
-            return new IntRange(Math.min(this.start, range.start), Math.max(this.end, range.end));
+    merge: function(left, right) {
+        if(!(left instanceof IntRange)) left = new IntRange(left);
+        if(!(right instanceof IntRange)) right = new IntRange(right);
+        if(this.isConnected(left, right)) {
+            return new IntRange(Math.min(left.start, right.start),
+                                Math.max(left.end, right.end));
         }
         else {
             return new IntRange();
         }
     },
-    // TODO: Rename to symdiff ::ugh::
-    disjoint: function(range) {
-        if(range.nullrange) return new IntRangeSet([this]);
-        if(this.nullrange) return new IntRangeSet([range]);
+    difference: function(left, right) {
+        if(!(left instanceof IntRange)) left = new IntRange(left);
+        if(!(right instanceof IntRange)) right = new IntRange(right);
+        if(this.isEmpty(left)) return new IntRangeSet([right]);
+        if(this.isEmpty(right)) return new IntRangeSet([left]);
         ranges = [];
-        if(this.surrounds(range)) {
-            ranges.push(new IntRange(this.start, range.start), new IntRange(range.end, this.end));
+        if(this.surrounds(left, right)) {
+            ranges.push(new IntRange(left.start, right.start), new IntRange(right.end, left.end));
         }
-        else if(range.surrounds(this)) {
-            ranges.push(new IntRange(range.start, this.start), new IntRange(this.end, range.end));
+        else if(this.surrounds(right, left)) {
+            ranges.push(new IntRange(right.start, left.start), new IntRange(left.end, right.end));
         }
         else {
-            var intersect = this.intersect(range);
-            if(intersect.start == range.start) {
+        	// TODO: Fix this so that the left range is incorporated
+            var intersect = this.intersect(left, right);
+            if(intersect.start == right.start) {
                 // They share the same start point
-                if(range.end > intersect.end) ranges.push(new IntRange(intersect.end, range.end));
-                else ranges.push(new IntRange(range.end, intersect.end));
+                if(right.end > intersect.end) ranges.push(new IntRange(intersect.end, right.end));
+                else ranges.push(new IntRange(right.end, intersect.end));
             }
-            else if(intersect.end == range.end) {
+            else if(intersect.end == right.end) {
                 // They share the same end point
-                if(range.start > intersect.start) ranges.push(new IntRange(intersect.start, range.start));
-                else ranges.push(new IntRange(range.start, intersect.start));
+                if(right.start > intersect.start) ranges.push(new IntRange(intersect.start, right.start));
+                else ranges.push(new IntRange(right.start, intersect.start));
             }
             else {
                 // The have no points in common
-                ranges.push(this, range);
+                ranges.push(left, right);
             }
         }
         return new IntRangeSet(ranges);
-    },
-    clone: function() {
-        return new IntRange(this);
-    },
-    toString: function() {
-        return 'IntRange( ' + this.start + '-' + this.end + ' )';
     }
-};
-// Static methods
-IntRange.Comparator = function(a, b) {
-    return a.compareTo(b);
 };

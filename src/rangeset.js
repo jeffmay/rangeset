@@ -30,85 +30,103 @@
  */
 function IntRangeSet(ranges)
 {
-    IntRangeSet.prototype.__init__.apply(this, arguments);
+    IntRangeSets.newRangeSet(this, arguments);
 }
-// Prototype definition
-IntRangeSet.prototype = {
-    __init__: function(ranges) {
-        this.ranges = [];
+IntRangeSet.prototype.toString = function() {
+    var str = 'RangeSet( ';
+    for(var i=0; i<this.ranges.length; i++) {
+        if(i > 0) {
+            str += ', ';
+        }
+        str += this.ranges[i].start + '-' + this.ranges[i].end;
+    }
+    str += ' )';
+    return str;
+};
+
+// Controller definition
+var IntRangeSets =
+{
+    newRangeSet: function(rangeset, args) {
+        rangeset.ranges = [];
         // RangeSet with only zero items must be compact
-        this.compact = arguments.length == 0;
-        if(arguments.length == 1) {
+        rangeset.compact = args.length == 0;
+        if(args.length == 1) {
+            // The argument must be a RangeSet or a list of ranges
+            var ranges = args[0];
             if(ranges instanceof Array) {
                 if(ranges.length == 2 && typeof ranges[0] == 'number' && typeof ranges[1] == 'number') {
                     // Single IntRange
-                    this.ranges.push(new IntRange(ranges));
+                    rangeset.ranges.push(new IntRange(ranges));
                 }
                 else {
                     for(var i=0; i<ranges.length; i++) {
-                        this.ranges.push(new IntRange(ranges[i]));
+                        rangeset.ranges.push(new IntRange(ranges[i]));
                     }
                 }
             }
             else if(ranges instanceof IntRangeSet) {
                 // Copy the IntRange values into the arguments
-                this.ranges = Array.prototype.slice.call(ranges.ranges, 0, 0);
+                rangeset.ranges = Array.prototype.slice.call(ranges.ranges, 0, 0);
             }
         }
         else {
-            for(var i=0; i<arguments.length; i++) {
-                this.ranges.push(new IntRange(arguments[i]));
+            for(var i=0; i<args.length; i++) {
+                rangeset.ranges.push(new IntRange(args[i]));
             }
         }
-        if(!this.compact) {
-            this.pack();
+        if(!rangeset.compact) {
+            this.pack(rangeset);
         }
     },
-    pack: function() {
+    pack: function(rangeset) {
+        if(!(rangeset instanceof IntRangeSet)) rangeset = new IntRangeSet(rangeset);
         // Sort from lowest to highest
-        this.ranges.sort(IntRange.Comparator);
+        rangeset.ranges.sort(IntRange.compare);
         // Merge by joining contiguous ranges from lowest to highest
         var prev = new IntRange();
         var newranges = [];
-        for(var i=0; i<this.ranges.length; i++) {
-            var cur = this.ranges[i];
+        for(var i=0; i<rangeset.ranges.length; i++) {
+            var cur = rangeset.ranges[i];
             // Skip any null ranges, we don't need them
-            if(cur.nullrange) {
+            if(IntRanges.isEmpty(cur)) {
                 continue;
             }
             // Merge the current range into the previous contiguous range or create a new one
             var merged;
-            if(prev.nullrange) {
+            if(IntRanges.isEmpty(prev)) {
                 // Use the current range as the start of a new contiguous range
                 merged = cur;
             }
             else {
                 // Merge newest range into contiguous range
-                merged = prev.merge(cur);
+                merged = IntRanges.merge(prev, cur);
                 // If the current range is not connected to the previous contiguous range
                 // or we have reached the end
-                if(merged.nullrange) {
+                if(IntRanges.isEmpty(merged)) {
                     // add the previous non-null contiguous range
                     newranges.push(prev);
                 }
             }
             // Set the previous pointer to the current contiguous range
-            prev = merged.nullrange ? cur : merged;
+            prev = IntRanges.isEmpty(merged) ? cur : merged;
         }
         if(!prev.nullrange) {
             // Add the last non-null contiguous range
             newranges.push(prev);
         }
-        this.ranges = newranges;
+        rangeset.ranges = newranges;
         // Mark as complete
-        this.compact = true;
+        rangeset.compact = true;
     },
-    // TODO: Create compareTo function
-    equals: function(rangeset) {
+    // TODO: Create compare function
+    equal: function(left, right) {
+        if(!(left instanceof IntRangeSet)) left = new IntRangeSet(left);
+        if(!(right instanceof IntRangeSet)) right = new IntRangeSet(right);
         var matches = true;
-        if(rangeset && this.ranges.length == rangeset.ranges.length) {
-            for(var i=0; i<rangeset.ranges.length; i++) {
-                if(!this.ranges[i].equals(rangeset.ranges[i])) {
+        if(left.ranges.length == right.ranges.length) {
+            for(var i=0; i<right.ranges.length; i++) {
+                if(!IntRanges.equal(left.ranges[i], right.ranges[i])) {
                     matches = false;
                     break;
                 }
@@ -119,22 +137,20 @@ IntRangeSet.prototype = {
         }
         return matches;
     },
-    add: function(range, waitToPack) {
-        if(!(range instanceof IntRange)) {
-            range = new IntRange(range);
-        }
-        if(!range.nullrange) {
-            this.ranges.push(range);
+    addRange: function(rangeset, range, waitToPack) {
+        if(!(rangeset instanceof IntRangeSet)) rangeset = new IntRangeSet(rangeset);
+        if(!(range instanceof IntRange)) range = new IntRange(range);
+        if(!IntRanges.isEmpty(range)) {
+            rangeset.ranges.push(range);
             if(waitToPack !== true) {
-                this.pack();
+                rangeset.pack();
             }
         }
     },
-    union: function(rangeset) {
-        var joined_ranges = Array.prototype.slice.call(this.ranges);
-        if(rangeset && rangeset.ranges && rangeset.ranges.length) {
-            Array.prototype.push.apply(joined_ranges, rangeset.ranges);
-        }
+    union: function(left, right) {
+        if(!(left instanceof IntRangeSet)) left = new IntRangeSet(left);
+        if(!(right instanceof IntRangeSet)) right = new IntRangeSet(right);
+        var joined_ranges = Array.prototype.concat.call(left.ranges, right.ranges);
         return new IntRangeSet(joined_ranges);
     },
     /**
@@ -152,7 +168,7 @@ IntRangeSet.prototype = {
      * @return A new rangeset representing the rangeset difference of
      *         this rangeset - the given rangeset.
      */
-    difference: function(rangeset) {
+    difference: function(left, right) {
         /* This uses what I would like to call the pen algorithm.
          *
          * An easy way to imagine it is to pretend to hold a pen and
@@ -188,7 +204,9 @@ IntRangeSet.prototype = {
          * Then we can construct the range
          * from max(top.start, btm.end) to min(top.end, btm.start)
          */
-        if( rangeset.ranges.length == 0 || this.ranges.length == 0 ) {
+        if(!(left instanceof IntRangeSet)) left = new IntRangeSet(left);
+        if(!(right instanceof IntRangeSet)) right = new IntRangeSet(right);
+        if( left.ranges.length == 0 || right.ranges.length == 0 ) {
             return new IntRangeSet();
         }
         var newranges = [];
@@ -206,8 +224,8 @@ IntRangeSet.prototype = {
             // unless the top range is surrounded by a bottom range
             // i.e.   ___   OR  _____
             //       _____      _____
-            top_range = this.ranges[top_idx++];
-            if( btm_range.surrounds(top_range) ) {
+            top_range = left.ranges[top_idx++];
+            if( IntRanges.surrounds(btm_range, top_range) ) {
                 continue;
             }
             // Skip any bottom ranges that end before the
@@ -223,7 +241,7 @@ IntRangeSet.prototype = {
                     // or the end of bottom range (if it is greater)
                     pen_start = Math.max(top_range.start, btm_range.end);
                     // Find the next bottom range (if there is one)
-                    btm_range = rangeset.ranges[++btm_idx];
+                    btm_range = right.ranges[++btm_idx];
                 }
                 else {
                     // The bottom range does not affect the pen_start
@@ -253,27 +271,13 @@ IntRangeSet.prototype = {
                 // If we have run out of ranges to subtract
                 // Add all the remaining ranges to the set
                 Array.prototype.push.apply(
-                        newranges, this.ranges.splice(top_idx + 1));
+                        newranges, left.ranges.splice(top_idx + 1));
                 break;
             }
         }
         // Iterate through every range to be subtracted from
-        while ( top_idx < this.ranges.length );
+        while ( top_idx < left.ranges.length );
         // Return a new rangeset to insure immutability
         return new IntRangeSet(newranges);
-    },
-    clone: function() {
-        return new IntRangeSet(this);
-    },
-    toString: function() {
-        var str = 'IntRangeSet( ';
-        for(var i=0; i<this.ranges.length; i++) {
-            if(i > 0) {
-                str += ', ';
-            }
-            str += this.ranges[i].start + '-' + this.ranges[i].end;
-        }
-        str += ' )';
-        return str;
     }
 };

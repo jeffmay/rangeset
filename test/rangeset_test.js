@@ -27,65 +27,86 @@ function runTests()
 {
 	module("IntRange");
 	
+    test("constructor with one or two null arguments is the same as empty constructor",
+        function()
+        {
+            var emptyRange = new IntRange();
+        	deepEqual(new IntRange(null), emptyRange);
+        	deepEqual(new IntRange(null, null), emptyRange);
+        }
+    );
+    // TODO: Write more constructor tests
 	test("intersect known values",
 		function()
 		{
-	        deepEqual(new IntRange(1, 2).intersect(new IntRange(1, 2)), new IntRange(1, 2));
-	        deepEqual(new IntRange(1, 3).intersect(new IntRange(1, 2)), new IntRange(1, 2));
-	        deepEqual(new IntRange(1, 2).intersect(new IntRange(1, 3)), new IntRange(1, 2));
-	        deepEqual(new IntRange(0, 2).intersect(new IntRange(1, 2)), new IntRange(1, 2));
-	        deepEqual(new IntRange(1, 2).intersect(new IntRange(0, 2)), new IntRange(1, 2));
-	        deepEqual(new IntRange(0, 3).intersect(new IntRange(1, 2)), new IntRange(1, 2));
-	        deepEqual(new IntRange(1, 2).intersect(new IntRange(0, 3)), new IntRange(1, 2));
-	        deepEqual(new IntRange(1, 3).intersect(new IntRange(0, 2)), new IntRange(1, 2));
-	        deepEqual(new IntRange(0, 2).intersect(new IntRange(1, 3)), new IntRange(1, 2));
+            var knownValue = new IntRange(1, 2);
+	        deepEqual(IntRanges.intersect([1, 2], [1, 2]), knownValue);
+	        deepEqual(IntRanges.intersect([1, 3], [1, 2]), knownValue);
+	        deepEqual(IntRanges.intersect([1, 2], [1, 3]), knownValue);
+	        deepEqual(IntRanges.intersect([0, 2], [1, 2]), knownValue);
+	        deepEqual(IntRanges.intersect([1, 2], [0, 2]), knownValue);
+	        deepEqual(IntRanges.intersect([0, 3], [1, 2]), knownValue);
+	        deepEqual(IntRanges.intersect([1, 2], [0, 3]), knownValue);
+	        deepEqual(IntRanges.intersect([1, 3], [0, 2]), knownValue);
+	        deepEqual(IntRanges.intersect([0, 2], [1, 3]), knownValue);
 	    }
 	);
-    test("intersect with null range always results in a null range",
+    test("intersect with empty range or null always results in an empty range",
     	function()
     	{
-	        deepEqual(new IntRange(1, 2).intersect(new IntRange(null)), new IntRange(null));
-	        deepEqual(new IntRange(null).intersect(new IntRange(3, 4)), new IntRange(null));
-	        deepEqual(new IntRange(1, 2).intersect(new IntRange(3, 4)), new IntRange(null));
-	        deepEqual(new IntRange(null).intersect(new IntRange(null)), new IntRange(null));
+            var emptyRange = new IntRange();
+	        deepEqual(IntRanges.intersect([1, 2], null  ), emptyRange);
+	        deepEqual(IntRanges.intersect(  null, [3, 4]), emptyRange);
+	        deepEqual(IntRanges.intersect([1, 2], [3, 4]), emptyRange);
+	        deepEqual(IntRanges.intersect(  null, null  ), emptyRange);
+            // And with empty ranges
+	        deepEqual(IntRanges.intersect([1, 2], new IntRange()), emptyRange);
+	        deepEqual(IntRanges.intersect(new IntRange(), [3, 4]), emptyRange);
+	        deepEqual(IntRanges.intersect([1, 2], [3, 4]), emptyRange);
+	        deepEqual(IntRanges.intersect(new IntRange(), new IntRange()), emptyRange);
 	    }
 	);
     test("disjoint known values",
     	function()
     	{
-	        deepEqual(new IntRange(1, 2).disjoint(new IntRange(1, 3)), new IntRangeSet([2, 3]));
-	        deepEqual(new IntRange(1, 3).disjoint(new IntRange(1, 2)), new IntRangeSet([2, 3]));
-	        deepEqual(new IntRange(0, 2).disjoint(new IntRange(1, 2)), new IntRangeSet([1, 2]));
-	        deepEqual(new IntRange(1, 3).disjoint(new IntRange(0, 2)), new IntRangeSet([1, 2]));
-	        deepEqual(new IntRange(0, 3).disjoint(new IntRange(1, 2)), new IntRangeSet([2, 3]));
-	        deepEqual(new IntRange(1, 2).disjoint(new IntRange(1, 3)), new IntRangeSet([2, 3]));
+	        deepEqual(IntRanges.difference([1, 2], [1, 3]), new IntRangeSet([2, 3]));
+	        deepEqual(IntRanges.difference([1, 3], [1, 2]), new IntRangeSet([2, 3]));
+	        deepEqual(IntRanges.difference([0, 2], [1, 2]), new IntRangeSet([1, 2]));
+	        deepEqual(IntRanges.difference([1, 3], [0, 2]), new IntRangeSet([1, 2]));
+	        deepEqual(IntRanges.difference([0, 3], [1, 2]), new IntRangeSet([2, 3]));
+	        deepEqual(IntRanges.difference([1, 2], [1, 3]), new IntRangeSet([2, 3]));
 	    }
 	);
-	test("disjoint with null range always results in a null range",
+	test("disjoint with null or empty range always results in an empty range",
     	function()
     	{
-	        deepEqual(new IntRange(1, 2).disjoint(new IntRange(1, 2)), new IntRangeSet(null));
-	        deepEqual(new IntRange(null).disjoint(new IntRange(1, 2)), new IntRangeSet(null));
-	        deepEqual(new IntRange(1, 2).disjoint(new IntRange(null)), new IntRangeSet(null));
-	        deepEqual(new IntRange(null).disjoint(new IntRange(null)), new IntRangeSet(null));
+            var emptyRange = new IntRange();
+	        deepEqual(IntRanges.difference([1, 2], [1, 2]), emptyRange);
+	        deepEqual(IntRanges.difference(  null, [1, 2]), emptyRange);
+	        deepEqual(IntRanges.difference([1, 2], null  ), emptyRange);
+	        deepEqual(IntRanges.difference(  null, null  ), emptyRange);
 	    }
 	);
     test("isConnected known values",
     	function()
     	{
-	        equal(new IntRange(1, 2).isConnected(new IntRange(2, 3)), true);
-	        equal(new IntRange(2, 3).isConnected(new IntRange(1, 2)), true);
-	        equal(new IntRange(1, 3).isConnected(new IntRange(1, 2)), true);
-	        equal(new IntRange(1, 2).isConnected(new IntRange(1, 3)), true);
-	        equal(new IntRange(1, 2).isConnected(new IntRange(3, 4)), false);
+	        equal(IntRanges.isConnected([1, 2], [2, 3]), true);
+	        equal(IntRanges.isConnected([2, 3], [1, 2]), true);
+	        equal(IntRanges.isConnected([1, 3], [1, 2]), true);
+	        equal(IntRanges.isConnected([1, 2], [1, 3]), true);
+	        equal(IntRanges.isConnected([1, 2], [3, 4]), false);
+	        equal(IntRanges.isConnected([3, 4], [1, 2]), false);
 	    }
 	);
-	test("isConnected with null range is always false",
+	test("isConnected with null or empty range is always false",
 		function()
 		{
-	        equal(new IntRange(1, 2).isConnected(new IntRange(null)), false);
-	        equal(new IntRange(null).isConnected(new IntRange(1, 2)), false);
-	        equal(new IntRange(null).isConnected(new IntRange(null)), false);
+	        equal(IntRanges.isConnected([1, 2], null  ), false);
+	        equal(IntRanges.isConnected(  null, [1, 2]), false);
+	        equal(IntRanges.isConnected(  null, null  ), false);
+	        equal(IntRanges.isConnected([1, 2], new IntRange()), false);
+	        equal(IntRanges.isConnected(new IntRange(), [1, 2]), false);
+	        equal(IntRanges.isConnected(new IntRange(), new IntRange()), false);
 	    }
 	);
 	
@@ -218,49 +239,48 @@ function runTests()
     test("equals known values",
     	function()
     	{
-    		// TODO: Expand this to show that this is just as good as deepEqual()
     		// obviously equal
-	        equal(new IntRangeSet().equals(new IntRangeSet()), true);
-	        equal(new IntRangeSet([]).equals(new IntRangeSet([])), true);
-	        equal(new IntRangeSet([1, 2]).equals(new IntRangeSet([1, 2])), true);
-	        equal(new IntRangeSet([1, 2], [3, 4]).equals(new IntRangeSet([1, 2], [3, 4])), true);
-	        equal(new IntRangeSet([1, 2], [3, 4], [5, 8]).equals(new IntRangeSet([1, 2], [3, 4], [5, 8])), true);
+	        equal(IntRangeSets.equal(new IntRangeSet(), new IntRangeSet()), true);
+	        equal(IntRangeSets.equal(new IntRangeSet([]), new IntRangeSet([])), true);
+	        equal(IntRangeSets.equal(new IntRangeSet([1, 2]), new IntRangeSet([1, 2])), true);
+	        equal(IntRangeSets.equal(new IntRangeSet([1, 2], [3, 4]), new IntRangeSet([1, 2], [3, 4])), true);
+	        equal(IntRangeSets.equal(new IntRangeSet([1, 2], [3, 4], [5, 8]), new IntRangeSet([1, 2], [3, 4], [5, 8])), true);
 	        // obviously not equal
-	        equal(new IntRangeSet([1, 2]).equals(new IntRangeSet([1, 3])), false);
-	        equal(new IntRangeSet([1, 2]).equals(new IntRangeSet([0, 2])), false);
-	        equal(new IntRangeSet([1, 2], [3, 4]).equals(new IntRangeSet([1, 2])), false);
-	        equal(new IntRangeSet([1, 2]).equals(new IntRangeSet([1, 2], [3, 4])), false);
-	        equal(new IntRangeSet([1, 4]).equals(new IntRangeSet([1, 2], [3, 4])), false);
-	        equal(new IntRangeSet([1, 2], [3, 4]).equals(new IntRangeSet([1, 4])), false);
+	        equal(IntRangeSets.equal(new IntRangeSet([1, 2]), new IntRangeSet([1, 3])), false);
+	        equal(IntRangeSets.equal(new IntRangeSet([1, 2]), new IntRangeSet([0, 2])), false);
+	        equal(IntRangeSets.equal(new IntRangeSet([1, 2], [3, 4]), new IntRangeSet([1, 2])), false);
+	        equal(IntRangeSets.equal(new IntRangeSet([1, 2]), new IntRangeSet([1, 2], [3, 4])), false);
+	        equal(IntRangeSets.equal(new IntRangeSet([1, 4]), new IntRangeSet([1, 2], [3, 4])), false);
+	        equal(IntRangeSets.equal(new IntRangeSet([1, 2], [3, 4]), new IntRangeSet([1, 4])), false);
 		}
 	);
     test("union known values",
     	function()
     	{
-	        deepEqual(new IntRangeSet([1, 2]).union(new IntRangeSet([2, 3])), new IntRangeSet([1, 3]));
-	        deepEqual(new IntRangeSet([2, 3]).union(new IntRangeSet([1, 2])), new IntRangeSet([1, 3]));
-	        deepEqual(new IntRangeSet([1, 2], [3, 4]).union(new IntRangeSet([2, 3])), new IntRangeSet([1, 4]));
-	        deepEqual(new IntRangeSet([1, 2], [3, 4]).union(new IntRangeSet([2, 3], [4, 5])), new IntRangeSet([1, 5]));
-	        deepEqual(new IntRangeSet([1, 2], [3, 4]).union(new IntRangeSet([2, 5])), new IntRangeSet([1, 5]));
-	        deepEqual(new IntRangeSet([1, 2]).union(new IntRangeSet([0, 1], [2, 5])), new IntRangeSet([0, 5]));
+	        deepEqual(IntRangeSets.union(new IntRangeSet([1, 2]), new IntRangeSet([2, 3])), new IntRangeSet([1, 3]));
+	        deepEqual(IntRangeSets.union(new IntRangeSet([2, 3]), new IntRangeSet([1, 2])), new IntRangeSet([1, 3]));
+	        deepEqual(IntRangeSets.union(new IntRangeSet([1, 2], [3, 4]), new IntRangeSet([2, 3])), new IntRangeSet([1, 4]));
+	        deepEqual(IntRangeSets.union(new IntRangeSet([1, 2], [3, 4]), new IntRangeSet([2, 3], [4, 5])), new IntRangeSet([1, 5]));
+	        deepEqual(IntRangeSets.union(new IntRangeSet([1, 2], [3, 4]), new IntRangeSet([2, 5])), new IntRangeSet([1, 5]));
+	        deepEqual(IntRangeSets.union(new IntRangeSet([1, 2]), new IntRangeSet([0, 1], [2, 5])), new IntRangeSet([0, 5]));
 	    }
 	);
 	test("union with null rangeset or undefined/null argument equals the non-null rangeset",
 		function()
 		{
-	        deepEqual(new IntRangeSet().union(new IntRangeSet()), new IntRangeSet());
-	        deepEqual(new IntRangeSet([1, 2]).union(new IntRangeSet()), new IntRangeSet([1, 2]));
-	        deepEqual(new IntRangeSet().union(new IntRangeSet([1, 2])), new IntRangeSet([1, 2]));
-	        deepEqual(new IntRangeSet([1, 2], [3, 4]).union(new IntRangeSet()), new IntRangeSet([1, 2], [3, 4]));
-	        deepEqual(new IntRangeSet().union(null), new IntRangeSet());
-			deepEqual(new IntRangeSet([1, 2]).union(null), new IntRangeSet([1, 2]));
-			deepEqual(new IntRangeSet([1, 2], [3, 4]).union(null), new IntRangeSet([1, 2], [3, 4]));
-			deepEqual(new IntRangeSet().union(undefined), new IntRangeSet());
-			deepEqual(new IntRangeSet([1, 2]).union(undefined), new IntRangeSet([1, 2]));
-			deepEqual(new IntRangeSet([1, 2], [3, 4]).union(undefined), new IntRangeSet([1, 2], [3, 4]));
-			deepEqual(new IntRangeSet().union(), new IntRangeSet());
-			deepEqual(new IntRangeSet([1, 2]).union(), new IntRangeSet([1, 2]));
-			deepEqual(new IntRangeSet([1, 2], [3, 4]).union(), new IntRangeSet([1, 2], [3, 4]));
+	        deepEqual(IntRangeSets.union(new IntRangeSet(), new IntRangeSet()), new IntRangeSet());
+	        deepEqual(IntRangeSets.union(new IntRangeSet([1, 2]), new IntRangeSet()), new IntRangeSet([1, 2]));
+	        deepEqual(IntRangeSets.union(new IntRangeSet(), new IntRangeSet([1, 2])), new IntRangeSet([1, 2]));
+	        deepEqual(IntRangeSets.union(new IntRangeSet([1, 2], [3, 4]), new IntRangeSet()), new IntRangeSet([1, 2], [3, 4]));
+	        deepEqual(IntRangeSets.union(new IntRangeSet(), null), new IntRangeSet());
+			deepEqual(IntRangeSets.union(new IntRangeSet([1, 2]), null), new IntRangeSet([1, 2]));
+			deepEqual(IntRangeSets.union(new IntRangeSet([1, 2], [3, 4]), null), new IntRangeSet([1, 2], [3, 4]));
+			deepEqual(IntRangeSets.union(new IntRangeSet(), undefined), new IntRangeSet());
+			deepEqual(IntRangeSets.union(new IntRangeSet([1, 2]), undefined), new IntRangeSet([1, 2]));
+			deepEqual(IntRangeSets.union(new IntRangeSet([1, 2], [3, 4]), undefined), new IntRangeSet([1, 2], [3, 4]));
+			deepEqual(IntRangeSets.union(new IntRangeSet()), new IntRangeSet());
+			deepEqual(IntRangeSets.union(new IntRangeSet([1, 2])), new IntRangeSet([1, 2]));
+			deepEqual(IntRangeSets.union(new IntRangeSet([1, 2], [3, 4])), new IntRangeSet([1, 2], [3, 4]));
 	    }
 	);
     test("difference known values",
@@ -268,19 +288,19 @@ function runTests()
     	{
 	        // TODO: Finish writing the tests for this function
 	        // Test the inner loop of the function
-	        deepEqual(new IntRangeSet([5, 9]).difference(new IntRangeSet([0, 1], [2, 3], [4, 5])), new IntRangeSet([5, 9]));
-	        deepEqual(new IntRangeSet([5, 9]).difference(new IntRangeSet([0, 1])), new IntRangeSet([5, 9]));
-	        deepEqual(new IntRangeSet([5, 9]).difference(new IntRangeSet([4, 6])), new IntRangeSet([6, 9]));
-	        deepEqual(new IntRangeSet([5, 9]).difference(new IntRangeSet([6, 7])), new IntRangeSet([5, 6], [7, 9]));
-	        deepEqual(new IntRangeSet([1, 3]).difference(new IntRangeSet([1, 2])), new IntRangeSet([2, 3]));
-	        deepEqual(new IntRangeSet([1, 3]).difference(new IntRangeSet([2, 3])), new IntRangeSet([1, 2]));
-	        deepEqual(new IntRangeSet([1, 3], [4, 6]).difference(new IntRangeSet([2, 3], [4, 5])), new IntRangeSet([1, 2], [5, 6]));
-	        deepEqual(new IntRangeSet([1, 6]).difference(new IntRangeSet([1, 6])), new IntRangeSet());
-	        deepEqual(new IntRangeSet([1, 2], [4, 5]).difference(new IntRangeSet([3, 6])), new IntRangeSet([1, 2]));
-	        deepEqual(new IntRangeSet([1, 3], [5, 6]).difference(new IntRangeSet([2, 7])), new IntRangeSet([1, 2]));
-	        deepEqual(new IntRangeSet([1, 6]).difference(new IntRangeSet([2, 3], [4, 5])), new IntRangeSet([1, 2], [3, 4], [5, 6]));
-	        deepEqual(new IntRangeSet([2, 3], [4, 5]).difference(new IntRangeSet([1, 6])), new IntRangeSet());
-	        deepEqual(new IntRangeSet([2, 3], [4, 5]).difference(new IntRangeSet([2, 3])), new IntRangeSet([4, 5]));
+	        deepEqual(IntRangeSet.difference(new IntRangeSet([5, 9]), new IntRangeSet([0, 1], [2, 3], [4, 5])), new IntRangeSet([5, 9]));
+	        deepEqual(IntRangeSet.difference(new IntRangeSet([5, 9]), new IntRangeSet([0, 1])), new IntRangeSet([5, 9]));
+	        deepEqual(IntRangeSet.difference(new IntRangeSet([5, 9]), new IntRangeSet([4, 6])), new IntRangeSet([6, 9]));
+	        deepEqual(IntRangeSet.difference(new IntRangeSet([5, 9]), new IntRangeSet([6, 7])), new IntRangeSet([5, 6], [7, 9]));
+	        deepEqual(IntRangeSet.difference(new IntRangeSet([1, 3]), new IntRangeSet([1, 2])), new IntRangeSet([2, 3]));
+	        deepEqual(IntRangeSet.difference(new IntRangeSet([1, 3]), new IntRangeSet([2, 3])), new IntRangeSet([1, 2]));
+	        deepEqual(IntRangeSet.difference(new IntRangeSet([1, 3], [4, 6]), new IntRangeSet([2, 3], [4, 5])), new IntRangeSet([1, 2], [5, 6]));
+	        deepEqual(IntRangeSet.difference(new IntRangeSet([1, 6]), new IntRangeSet([1, 6])), new IntRangeSet());
+	        deepEqual(IntRangeSet.difference(new IntRangeSet([1, 2], [4, 5]), new IntRangeSet([3, 6])), new IntRangeSet([1, 2]));
+	        deepEqual(IntRangeSet.difference(new IntRangeSet([1, 3], [5, 6]), new IntRangeSet([2, 7])), new IntRangeSet([1, 2]));
+	        deepEqual(IntRangeSet.difference(new IntRangeSet([1, 6]), new IntRangeSet([2, 3], [4, 5])), new IntRangeSet([1, 2], [3, 4], [5, 6]));
+	        deepEqual(IntRangeSet.difference(new IntRangeSet([2, 3], [4, 5]), new IntRangeSet([1, 6])), new IntRangeSet());
+	        deepEqual(IntRangeSet.difference(new IntRangeSet([2, 3], [4, 5]), new IntRangeSet([2, 3])), new IntRangeSet([4, 5]));
 	    }
 	);
 

@@ -66,7 +66,7 @@ function runTests()
 	        deepEqual(IntRanges.intersect(new IntRange(), new IntRange()), emptyRange);
 	    }
 	);
-    test("disjoint known values",
+    test("difference known values",
     	function()
     	{
 	        deepEqual(IntRanges.difference([1, 2], [1, 3]), new IntRangeSet([2, 3]));
@@ -77,7 +77,7 @@ function runTests()
 	        deepEqual(IntRanges.difference([1, 2], [1, 3]), new IntRangeSet([2, 3]));
 	    }
 	);
-	test("disjoint with null or empty range always results in an empty range",
+	test("difference with null or empty range always results in an empty range",
     	function()
     	{
             var emptyRange = new IntRange();
@@ -112,7 +112,7 @@ function runTests()
 	
 	module("IntRangeSet");
 	
-    test("constructor with empty or null parameters is always a null rangeset",
+    test("constructor with empty or null parameters is always an empty rangeset",
         function()
         {
         	var nullRangeSet = new IntRangeSet();
@@ -236,7 +236,7 @@ function runTests()
             // Order doesn't matter with overlapping ranges
 	    }
 	);
-    test("equals known values",
+    test("equal known values",
     	function()
     	{
     		// obviously equal
@@ -265,7 +265,7 @@ function runTests()
 	        deepEqual(IntRangeSets.union(new IntRangeSet([1, 2]), new IntRangeSet([0, 1], [2, 5])), new IntRangeSet([0, 5]));
 	    }
 	);
-	test("union with null rangeset or undefined/null argument equals the non-null rangeset",
+	test("union with null or empty rangeset or undefined/null argument equals the non-empty rangeset",
 		function()
 		{
 	        deepEqual(IntRangeSets.union(new IntRangeSet(), new IntRangeSet()), new IntRangeSet());
